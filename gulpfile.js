@@ -1,6 +1,8 @@
 var gulp = require('gulp');
 var clean = require('gulp-clean');
 var react = require('gulp-react');
+var sass = require('gulp-sass');
+var minifycss = require('gulp-minify-css');
 var uglify = require('gulp-uglify');
 var rename = require('gulp-rename');
 var browserify = require('gulp-browserify');
@@ -28,6 +30,15 @@ gulp.task('build_scripts', function() {
     .pipe(gulp.dest('dist/javascript/'));
 });
 
+gulp.task('build_styles', function() {
+	return gulp.src('src/css/**/*.scss')
+		.pipe(sass())
+		.pipe(gulp.dest('dist/css/'))
+		.pipe(minifycss())
+		.pipe(rename({suffix: '.min'}))
+		.pipe(gulp.dest('dist/css/'))
+});
+
 gulp.task('default', ['clean'], function() {
   return gulp.start('browserify');
 });
@@ -49,13 +60,16 @@ gulp.task('browserify_nodep', browserifyTask);
 
 gulp.task('watch', ['clean'], function() {
   var watching = false;
-  gulp.start('browserify', function() {
+  gulp.start('browserify', 'build_styles', function() {
     // Protect against this function being called twice. (Bug?)
     if (!watching) {
       watching = true;
 
-      // Watch for changes in src js and run the 'javascript' task
-      gulp.watch('src/**/*.js', ['javascript']);
+      // Watch for changes in src js and run the 'build_scripts' task
+      gulp.watch('src/**/*.js*', ['build_scripts']);
+
+      // Watch for changes in src css and run the 'build_styles' task
+      gulp.watch('src/**/*.scss', ['build_styles']);
 
       // Run the 'browserify_nodep' task when main.js changes
       gulp.watch('dist/javascript/main.js', ['browserify_nodep']);
